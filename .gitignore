@@ -4,3 +4,5 @@
 bin
 doc
 lib
+build/*
+src/**/*.mod
