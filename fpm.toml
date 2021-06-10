@@ -1,0 +1,13 @@
+name = "PowellOpt"
+version = "0.1.0"
+author = "Jacob Williams, M.J.D. Powell"
+maintainer = "jacob@degenerateconic.com"
+copyright = "Copyright (c) 2015, Jacob Williams" 
+
+[build]
+auto-executables = true
+auto-tests = true
+auto-examples = true
+
+[install]
+library = false
