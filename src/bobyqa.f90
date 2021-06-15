@@ -24,7 +24,8 @@
 
 module bobyqa_module
  
-    use kind_module, only: wp
+    use kind_module, only: wp, VALUE_ERROR, FIT_ERROR, LARGE_VALUE
+    use ferror, only: errors
  
     private
  
@@ -74,7 +75,7 @@ contains
 !  matrix calculations becomes more difficult. Some excellent numerical results
 !  have been found in the case ```NPT=N+6``` even with more than 100 variables.
  
-    subroutine bobyqa (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, calfun)
+    subroutine bobyqa (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, calfun, timeout)
 
         implicit none
                 
@@ -111,6 +112,8 @@ contains
                                                        !! F to the value of the objective function for the current values of the
                                                        !! variables X(1),X(2),...,X(N), which are generated automatically in a
                                                        !! way that satisfies the bounds given in XL and XU.   
+        type(errors)                        :: err     !! Error manager
+        real, optional                      :: timeout !! Time in seconds until a timeout error is raised.
         
         integer :: ibmat,id,ifv,igo,ihq,ipq,isl,isu,ivl,iw,ixa,&
                    ixb,ixn,ixo,ixp,izmat,j,jsl,jsu,ndim,np
@@ -122,13 +125,21 @@ contains
         ! The array W will be used for working space.
         allocate( w((NPT+5)*(NPT+N)+3*N*(N+5)/2) )
 
+        call err%reset_timeout()
+        if (present(timeout)) then
+            call err%set_timeout_threshold(timeout)
+            call err%start_timing()
+        end if
 !
 !     Return if the value of NPT is unacceptable.
 !
         np = n + 1
         if (npt < n+2 .or. npt > ((n+2)*np)/2) then
-            write(*,'(/4X,A)') &
-                'Return from BOBYQA because NPT is not in the required interval'
+            call err%report_error( &
+                "bobyqa", &
+                "Return from BOBYQA because NPT is not in the required interval",&
+                VALUE_ERROR &
+            )
             return
         end if
 !
@@ -165,9 +176,12 @@ contains
         do j = 1, n
             temp = xu (j) - xl (j)
             if (temp < rhobeg+rhobeg) then
-                write(*,'(/4X,A)') &
-                    'Return from BOBYQA because one of the differences '//&
-                    'XU(I)-XL(I) is less than 2*RHOBEG.'
+                call err%report_error( &
+                    "bobyqa", &
+                    "Return from BOBYQA because one of the differences "//&
+                    "XU(I)-XL(I) is less than 2*RHOBEG.", &
+                    VALUE_ERROR &
+                )
                 return
             end if
             jsl = isl + j - 1
@@ -201,7 +215,7 @@ contains
 !
         call bobyqb (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, w(ixb), w(ixp), &
          w(ifv), w(ixo), w(igo), w(ihq), w(ipq), w(ibmat), w(izmat), ndim, w(isl), &
-         w(isu), w(ixn), w(ixa), w(id), w(ivl), w(iw), calfun)
+         w(isu), w(ixn), w(ixa), w(id), w(ivl), w(iw), calfun, err)
          
         deallocate(w)
  
@@ -209,7 +223,7 @@ contains
  
     subroutine bobyqb (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, xbase, xpt, &
                        fval, xopt, gopt, hq, pq, bmat, zmat, ndim, sl, su, xnew, xalt, &
-                       d, vlag, w, calfun)
+                       d, vlag, w, calfun, err)
    
         implicit real (wp) (a-h, o-z)
         
@@ -217,6 +231,7 @@ contains
                   gopt (*), hq (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*), &
                   xnew (*), xalt (*), d (*), vlag (*), w (*)
         procedure (func) :: calfun
+        type(errors) :: err    
 !
 !     The arguments N, NPT, X, XL, XU, RHOBEG, RHOEND, IPRINT and MAXFUN
 !       are identical to the corresponding arguments in SUBROUTINE BOBYQA.
@@ -270,18 +285,26 @@ contains
 !     less than NPT. GOPT will be updated if KOPT is different from KBASE.
 !
         call prelim (n, npt, x, xl, xu, rhobeg, iprint, maxfun, xbase, xpt, fval, gopt, &
-       & hq, pq, bmat, zmat, ndim, sl, su, nf, kopt, calfun)
+       & hq, pq, bmat, zmat, ndim, sl, su, nf, kopt, calfun, err)
         xoptsq = zero
         do i = 1, n
             xopt (i) = xpt (kopt, i)
             xoptsq = xoptsq + xopt (i) ** 2
         end do
         fsave = fval (1)
+
         if (nf < npt) then
-            if (iprint > 0) write(*,'(/4X,A)') &
-                'Return from BOBYQA because CALFUN has been called MAXFUN times.'
-            go to 720
+            call err%report_error( &
+                "bobyqa", &
+                "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
+                FIT_ERROR &
+            )
         end if
+        if (err%timeout_is_set()) then
+            call err%check_timeout("bobyqb")
+        end if
+        if (err%has_error_occurred()) go to 720
+
         kbase = 1
 !
 !     Complete the settings that are required for the iterative procedure.
@@ -460,7 +483,7 @@ contains
         kbase = kopt
         call rescue (n, npt, xl, xu, iprint, maxfun, xbase, xpt, fval, xopt, gopt, hq, &
        & pq, bmat, zmat, ndim, sl, su, nf, delta, kopt, vlag, w, w(n+np), w(ndim+np), &
-       & calfun)
+       & calfun, err)
 !
 !     XOPT is updated now in case the branch below to label 720 is taken.
 !     Any updating of GOPT occurs after the branch below to label 20, which
@@ -630,6 +653,11 @@ contains
         end if
         nf = nf + 1
         call calfun (n, x(1:n), f)
+        if (isnan(f)) f = LARGE_VALUE
+        if (err%timeout_is_set()) then
+            call err%check_timeout("bobyqb")
+        end if
+        if (err%has_error_occurred()) go to 720
         if (iprint == 3) then
             print 400, nf, f, (x(i), i=1, n)
 400         format (/ 4 x, 'Function number', i6, '    F =', 1 pd18.10,&
@@ -1244,13 +1272,14 @@ contains
     end subroutine altmov
  
     subroutine prelim (n, npt, x, xl, xu, rhobeg, iprint, maxfun, xbase, xpt, fval, gopt, &
-   & hq, pq, bmat, zmat, ndim, sl, su, nf, kopt, calfun)
+   & hq, pq, bmat, zmat, ndim, sl, su, nf, kopt, calfun, err)
    
         implicit real (wp) (a-h, o-z)
         
         dimension x (*), xl (*), xu (*), xbase (*), xpt (npt,*), fval (*), gopt (*), hq &
        & (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*)
         procedure (func) :: calfun
+        type(errors) :: err
  
 !
 !     The arguments N, NPT, X, XL, XU, RHOBEG, IPRINT and MAXFUN are the
@@ -1343,6 +1372,11 @@ contains
             if (xpt(nf, j) == su(j)) x (j) = xu (j)
         end do
         call calfun (n, x(1:n), f)
+        if (isnan(f)) f = LARGE_VALUE
+        if (err%timeout_is_set()) then
+            call err%check_timeout("bobyqb")
+        end if
+        if (err%has_error_occurred()) return
         if (iprint == 3) then
             print 70, nf, f, (x(i), i=1, n)
 70          format (/ 4 x, 'Function number', i6, '    F =', 1 pd18.10,&
@@ -1410,7 +1444,7 @@ contains
     end subroutine prelim
  
     subroutine rescue (n, npt, xl, xu, iprint, maxfun, xbase, xpt, fval, xopt, gopt, hq, &
-   & pq, bmat, zmat, ndim, sl, su, nf, delta, kopt, vlag, ptsaux, ptsid, w, calfun)
+   & pq, bmat, zmat, ndim, sl, su, nf, delta, kopt, vlag, ptsaux, ptsid, w, calfun, err)
    
         implicit real (wp) (a-h, o-z)
         
@@ -1418,6 +1452,7 @@ contains
        & hq (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*), vlag (*), ptsaux &
        & (2,*), ptsid (*), w (*)
         procedure (func) :: calfun
+        type(errors) :: err
  
 !
 !     The arguments N, NPT, XL, XU, IPRINT, MAXFUN, XBASE, XPT, FVAL, XOPT,
@@ -1783,6 +1818,11 @@ contains
             end do
             nf = nf + 1
             call calfun (n, w(1:n), f)
+            if (isnan(f)) f = LARGE_VALUE
+            if (err%timeout_is_set()) then
+                call err%check_timeout("bobyqb")
+            end if
+            if (err%has_error_occurred()) return
             if (iprint == 3) then
                 print 300, nf, f, (w(i), i=1, n)
 300             format (/ 4 x, 'Function number', i6, '    F =', 1 pd18.10,&

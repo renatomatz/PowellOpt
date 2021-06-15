@@ -9,5 +9,8 @@ auto-executables = true
 auto-tests = true
 auto-examples = true
 
-[install]
-library = false
+[library]
+source-dir = "src"
+
+[dependencies]
+ferror = { git = "https://github.com/renatomatz/ferror.git" } 
