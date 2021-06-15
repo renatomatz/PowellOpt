@@ -287,7 +287,7 @@ contains
         call prelim (n, npt, x, xl, xu, rhobeg, iprint, maxfun, xbase, xpt, fval, gopt, &
        & hq, pq, bmat, zmat, ndim, sl, su, nf, kopt, calfun, err)
         xoptsq = zero
-        if (err%has_error_occurred()) go to 720
+        if (err%has_error_occurred()) return
         do i = 1, n
             xopt (i) = xpt (kopt, i)
             xoptsq = xoptsq + xopt (i) ** 2
@@ -482,7 +482,7 @@ contains
         call rescue (n, npt, xl, xu, iprint, maxfun, xbase, xpt, fval, xopt, gopt, hq, &
        & pq, bmat, zmat, ndim, sl, su, nf, delta, kopt, vlag, w, w(n+np), w(ndim+np), &
        & calfun, err)
-        if (err%has_error_occurred()) go to 720
+        if (err%has_error_occurred()) return
 !
 !     XOPT is updated now in case the branch below to label 720 is taken.
 !     Any updating of GOPT occurs after the branch below to label 20, which
