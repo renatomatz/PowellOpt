@@ -295,15 +295,12 @@ contains
 
         if (nf < npt) then
             call err%report_error( &
-                "bobyqa", &
+                "bobyqb", &
                 "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
                 FIT_ERROR &
             )
+            go to 720
         end if
-        if (err%timeout_is_set()) then
-            call err%check_timeout("bobyqb")
-        end if
-        if (err%has_error_occurred()) go to 720
 
         kbase = 1
 !
@@ -498,8 +495,11 @@ contains
         end if
         if (nf < 0) then
             nf = maxfun
-            if (iprint > 0) write(*,'(/4X,A)') &
-                'Return from BOBYQA because CALFUN has been called MAXFUN times.'
+            call err%report_error( &
+                "bobyqa", &
+                "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
+                FIT_ERROR &
+            )
             go to 720
         end if
         nresc = nf
@@ -591,8 +591,11 @@ contains
             end if
             if (denom <= half*vlag(knew)**2) then
                 if (nf > nresc) go to 190
-                if (iprint > 0) write(*,'(/5X,A)') &
-                    'Return from BOBYQA because of much cancellation in a denominator.'
+                call err%report_error( &
+                    "bobyqb", &
+                    "Return from BOBYQA because of much cancellation in a denominator.", &
+                    FIT_ERROR &
+                )
                 go to 720
             end if
 !
@@ -628,8 +631,11 @@ contains
             end do
             if (scaden <= half*biglsq) then
                 if (nf > nresc) go to 190
-                if (iprint > 0) write(*,'(/5X,A)') &
-                    'Return from BOBYQA because of much cancellation in a denominator.'
+                call err%report_error( &
+                    "bobyqb", &
+                    "Return from BOBYQA because of much cancellation in a denominator.", &
+                    FIT_ERROR &
+                )
                 go to 720
             end if
         end if
@@ -647,8 +653,11 @@ contains
             if (xnew(i) == su(i)) x (i) = xu (i)
         end do
         if (nf >= maxfun) then
-            if (iprint > 0) write(*,'(/4X,A)') &
-                'Return from BOBYQA because CALFUN has been called MAXFUN times.'
+            call err%report_error( &
+                "bobyqb", &
+                "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
+                FIT_ERROR &
+            )
             go to 720
         end if
         nf = nf + 1
@@ -696,9 +705,11 @@ contains
 !
         if (ntrits > 0) then
             if (vquad >= zero) then
-                if (iprint > 0) print 430
-430             format (/ 4 x, 'Return from BOBYQA because a trust',&
-                ' region step has failed to reduce Q.')
+                call err%report_error( &
+                    "bobyqb", &
+                    "Return from BOBYQA because a trust region step has failed to reduce Q.", &
+                    FIT_ERROR &
+                )
                 go to 720
             end if
             ratio = (f-fopt) / vquad
