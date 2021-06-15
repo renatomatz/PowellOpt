@@ -667,8 +667,8 @@ contains
         if (isnan(f)) f = LARGE_VALUE
         if (err%timeout_is_set()) then
             call err%check_timeout("bobyqb")
+            if (err%has_error_occurred()) return
         end if
-        if (err%has_error_occurred()) go to 720
         if (iprint == 3) then
             print 400, nf, f, (x(i), i=1, n)
 400         format (/ 4 x, 'Function number', i6, '    F =', 1 pd18.10,&
@@ -1388,8 +1388,8 @@ contains
         if (isnan(f)) f = LARGE_VALUE
         if (err%timeout_is_set()) then
             call err%check_timeout("bobyqb")
+            if (err%has_error_occurred()) return
         end if
-        if (err%has_error_occurred()) return
         if (iprint == 3) then
             print 70, nf, f, (x(i), i=1, n)
 70          format (/ 4 x, 'Function number', i6, '    F =', 1 pd18.10,&
@@ -1834,8 +1834,8 @@ contains
             if (isnan(f)) f = LARGE_VALUE
             if (err%timeout_is_set()) then
                 call err%check_timeout("bobyqb")
+                if (err%has_error_occurred()) return
             end if
-            if (err%has_error_occurred()) return
             if (iprint == 3) then
                 print 300, nf, f, (w(i), i=1, n)
 300             format (/ 4 x, 'Function number', i6, '    F =', 1 pd18.10,&
