@@ -126,6 +126,7 @@ contains
         allocate( w((NPT+5)*(NPT+N)+3*N*(N+5)/2) )
 
         call err%reset_timeout()
+        call err%reset_error_status()
         if (present(timeout)) then
             call err%set_timeout_threshold(timeout)
             call err%start_timing()
