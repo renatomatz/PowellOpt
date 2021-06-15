@@ -2,8 +2,10 @@
 *.out
 *.mod
 ./**/error_log.txt
+error_log.txt
 bin
 doc
 lib
 build/*
 src/**/*.mod
+
