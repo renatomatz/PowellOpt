@@ -1,6 +1,7 @@
 *.o
 *.out
 *.mod
+./**/error_log.txt
 bin
 doc
 lib
