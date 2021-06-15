@@ -75,7 +75,7 @@ contains
 !  matrix calculations becomes more difficult. Some excellent numerical results
 !  have been found in the case ```NPT=N+6``` even with more than 100 variables.
  
-    subroutine bobyqa (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, calfun, timeout)
+    subroutine bobyqa (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, calfun, err, timeout)
 
         implicit none
                 
@@ -112,8 +112,8 @@ contains
                                                        !! F to the value of the objective function for the current values of the
                                                        !! variables X(1),X(2),...,X(N), which are generated automatically in a
                                                        !! way that satisfies the bounds given in XL and XU.   
-        type(errors)                        :: err     !! Error manager
-        real, optional                      :: timeout !! Time in seconds until a timeout error is raised.
+        type(errors), intent(inout)         :: err     !! Error manager
+        real, optional, intent(in)          :: timeout !! Time in seconds until a timeout error is raised.
         
         integer :: ibmat,id,ifv,igo,ihq,ipq,isl,isu,ivl,iw,ixa,&
                    ixb,ixn,ixo,ixp,izmat,j,jsl,jsu,ndim,np
@@ -2382,6 +2382,8 @@ contains
         integer,parameter  :: maxfun = 500000
         real(wp),parameter :: rhobeg = 1.0e-1_wp
         real(wp),parameter :: rhoend = 1.0e-6_wp
+
+        type(errors) :: err
         
         m = 5
         do
@@ -2400,7 +2402,7 @@ contains
                     x (2*j-1) = cos (temp)
                     x (2*j) = sin (temp)
                 end do
-                call bobyqa (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, calfun)
+                call bobyqa (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, calfun, err)
             end do
             m = m + m
             if (m > 10) exit
