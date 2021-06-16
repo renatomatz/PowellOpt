@@ -112,7 +112,7 @@ contains
                                                        !! F to the value of the objective function for the current values of the
                                                        !! variables X(1),X(2),...,X(N), which are generated automatically in a
                                                        !! way that satisfies the bounds given in XL and XU.   
-        type(errors), intent(inout)         :: err     !! Error manager
+        type(errors), optional, intent(inout)         :: err     !! Error manager
         real, optional, intent(in)          :: timeout !! Time in seconds until a timeout error is raised.
         
         integer :: ibmat,id,ifv,igo,ihq,ipq,isl,isu,ivl,iw,ixa,&
@@ -125,9 +125,7 @@ contains
         ! The array W will be used for working space.
         allocate( w((NPT+5)*(NPT+N)+3*N*(N+5)/2) )
 
-        call err%reset_timeout()
-        call err%reset_error_status()
-        if (present(timeout)) then
+        if (present(err).and.present(timeout)) then
             call err%set_timeout_threshold(timeout)
             call err%start_timing()
         end if
@@ -136,11 +134,15 @@ contains
 !
         np = n + 1
         if (npt < n+2 .or. npt > ((n+2)*np)/2) then
-            call err%report_error( &
-                "bobyqa", &
-                "Return from BOBYQA because NPT is not in the required interval",&
-                VALUE_ERROR &
-            )
+            if (present(err)) then
+                call err%report_error( &
+                    "bobyqa", &
+                    "Return from BOBYQA because NPT is not in the required interval",&
+                    VALUE_ERROR &
+                )
+            else
+                print *, "Return from BOBYQA because NPT is not in the required interval"
+            end if
             return
         end if
 !
@@ -177,12 +179,17 @@ contains
         do j = 1, n
             temp = xu (j) - xl (j)
             if (temp < rhobeg+rhobeg) then
-                call err%report_error( &
-                    "bobyqa", &
-                    "Return from BOBYQA because one of the differences "//&
-                    "XU(I)-XL(I) is less than 2*RHOBEG.", &
-                    VALUE_ERROR &
-                )
+                if (present(err)) then
+                    call err%report_error( &
+                        "bobyqa", &
+                        "Return from BOBYQA because one of the differences "//&
+                        "XU(I)-XL(I) is less than 2*RHOBEG.", &
+                        VALUE_ERROR &
+                    )
+                else
+                    print *, "Return from BOBYQA because one of the differences "//&
+                             "XU(I)-XL(I) is less than 2*RHOBEG."
+                end if
                 return
             end if
             jsl = isl + j - 1
@@ -232,7 +239,7 @@ contains
                   gopt (*), hq (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*), &
                   xnew (*), xalt (*), d (*), vlag (*), w (*)
         procedure (func) :: calfun
-        type(errors) :: err    
+        type(errors), optional :: err    
 !
 !     The arguments N, NPT, X, XL, XU, RHOBEG, RHOEND, IPRINT and MAXFUN
 !       are identical to the corresponding arguments in SUBROUTINE BOBYQA.
@@ -288,7 +295,7 @@ contains
         call prelim (n, npt, x, xl, xu, rhobeg, iprint, maxfun, xbase, xpt, fval, gopt, &
        & hq, pq, bmat, zmat, ndim, sl, su, nf, kopt, calfun, err)
         xoptsq = zero
-        if (err%has_error_occurred()) return
+        if (present(err).and.err%has_error_occurred()) return
         do i = 1, n
             xopt (i) = xpt (kopt, i)
             xoptsq = xoptsq + xopt (i) ** 2
@@ -296,11 +303,15 @@ contains
         fsave = fval (1)
 
         if (nf < npt) then
-            call err%report_error( &
-                "bobyqb", &
-                "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
-                FIT_ERROR &
-            )
+            if (present(err)) then
+                call err%report_error( &
+                    "bobyqb", &
+                    "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
+                    FIT_ERROR &
+                )
+            else
+                print *, "Return from BOBYQA because CALFUN has been called MAXFUN times."
+            end if
             go to 720
         end if
 
@@ -483,7 +494,7 @@ contains
         call rescue (n, npt, xl, xu, iprint, maxfun, xbase, xpt, fval, xopt, gopt, hq, &
        & pq, bmat, zmat, ndim, sl, su, nf, delta, kopt, vlag, w, w(n+np), w(ndim+np), &
        & calfun, err)
-        if (err%has_error_occurred()) return
+        if (present(err).and.err%has_error_occurred()) return
 !
 !     XOPT is updated now in case the branch below to label 720 is taken.
 !     Any updating of GOPT occurs after the branch below to label 20, which
@@ -498,11 +509,15 @@ contains
         end if
         if (nf < 0) then
             nf = maxfun
-            call err%report_error( &
-                "bobyqa", &
-                "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
-                FIT_ERROR &
-            )
+            if (present(err)) then
+                call err%report_error( &
+                    "bobyqa", &
+                    "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
+                    FIT_ERROR &
+                )
+            else
+                print*, "Return from BOBYQA because CALFUN has been called MAXFUN times."
+            end if
             go to 720
         end if
         nresc = nf
@@ -594,11 +609,15 @@ contains
             end if
             if (denom <= half*vlag(knew)**2) then
                 if (nf > nresc) go to 190
-                call err%report_error( &
-                    "bobyqb", &
-                    "Return from BOBYQA because of much cancellation in a denominator.", &
-                    FIT_ERROR &
-                )
+                if (present(err)) then
+                    call err%report_error( &
+                        "bobyqb", &
+                        "Return from BOBYQA because of much cancellation in a denominator.", &
+                        FIT_ERROR &
+                    )
+                else
+                    print *, "Return from BOBYQA because of much cancellation in a denominator."
+                end if
                 go to 720
             end if
 !
@@ -634,11 +653,15 @@ contains
             end do
             if (scaden <= half*biglsq) then
                 if (nf > nresc) go to 190
-                call err%report_error( &
-                    "bobyqb", &
-                    "Return from BOBYQA because of much cancellation in a denominator.", &
-                    FIT_ERROR &
-                )
+                if (present(err)) then
+                    call err%report_error( &
+                        "bobyqb", &
+                        "Return from BOBYQA because of much cancellation in a denominator.", &
+                        FIT_ERROR &
+                    )
+                else
+                    print *, "Return from BOBYQA because of much cancellation in a denominator."
+                end if
                 go to 720
             end if
         end if
@@ -656,17 +679,21 @@ contains
             if (xnew(i) == su(i)) x (i) = xu (i)
         end do
         if (nf >= maxfun) then
-            call err%report_error( &
-                "bobyqb", &
-                "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
-                FIT_ERROR &
-            )
+            if (present(err)) then
+                call err%report_error( &
+                    "bobyqb", &
+                    "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
+                    FIT_ERROR &
+                )
+            else
+                print *, "Return from BOBYQA because CALFUN has been called MAXFUN times."
+            end if
             go to 720
         end if
         nf = nf + 1
         call calfun (n, x(1:n), f)
         if (isnan(f)) f = LARGE_VALUE
-        if (err%timeout_is_set()) then
+        if (present(err).and.err%timeout_is_set()) then
             call err%check_timeout("bobyqb")
             if (err%has_error_occurred()) return
         end if
@@ -708,11 +735,15 @@ contains
 !
         if (ntrits > 0) then
             if (vquad >= zero) then
-                call err%report_error( &
-                    "bobyqb", &
-                    "Return from BOBYQA because a trust region step has failed to reduce Q.", &
-                    FIT_ERROR &
-                )
+                if (present(err)) then
+                    call err%report_error( &
+                        "bobyqb", &
+                        "Return from BOBYQA because a trust region step has failed to reduce Q.", &
+                        FIT_ERROR &
+                    )
+                else
+                    print *, "Return from BOBYQA because a trust region step has failed to reduce Q."
+                end if
                 go to 720
             end if
             ratio = (f-fopt) / vquad
@@ -1293,7 +1324,7 @@ contains
         dimension x (*), xl (*), xu (*), xbase (*), xpt (npt,*), fval (*), gopt (*), hq &
        & (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*)
         procedure (func) :: calfun
-        type(errors) :: err
+        type(errors), optional :: err
  
 !
 !     The arguments N, NPT, X, XL, XU, RHOBEG, IPRINT and MAXFUN are the
@@ -1387,7 +1418,7 @@ contains
         end do
         call calfun (n, x(1:n), f)
         if (isnan(f)) f = LARGE_VALUE
-        if (err%timeout_is_set()) then
+        if (present(err).and.err%timeout_is_set()) then
             call err%check_timeout("bobyqb")
             if (err%has_error_occurred()) return
         end if
@@ -1466,7 +1497,7 @@ contains
        & hq (*), pq (*), bmat (ndim,*), zmat (npt,*), sl (*), su (*), vlag (*), ptsaux &
        & (2,*), ptsid (*), w (*)
         procedure (func) :: calfun
-        type(errors) :: err
+        type(errors), optional :: err
  
 !
 !     The arguments N, NPT, XL, XU, IPRINT, MAXFUN, XBASE, XPT, FVAL, XOPT,
@@ -1833,7 +1864,7 @@ contains
             nf = nf + 1
             call calfun (n, w(1:n), f)
             if (isnan(f)) f = LARGE_VALUE
-            if (err%timeout_is_set()) then
+            if (present(err).and.err%timeout_is_set()) then
                 call err%check_timeout("bobyqb")
                 if (err%has_error_occurred()) return
             end if

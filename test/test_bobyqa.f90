@@ -87,6 +87,8 @@ program test_bobyqa
                 x (2*j-1) = cos (temp)
                 x (2*j) = sin (temp)
             end do
+            call err%reset_error_status()
+            call err%reset_timeout()
             call bobyqa (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, calfun, err)
             if (err%has_error_occurred()) exit mainloop
         end do
