@@ -304,7 +304,7 @@ contains
 
         if (nf < npt) then
             if (present(err)) then
-                call err%report_error( &
+                call err%report_warning( &
                     "bobyqb", &
                     "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
                     FIT_ERROR + 10 &
@@ -510,7 +510,7 @@ contains
         if (nf < 0) then
             nf = maxfun
             if (present(err)) then
-                call err%report_error( &
+                call err%report_warning( &
                     "bobyqa", &
                     "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
                     FIT_ERROR + 10 &
@@ -680,7 +680,7 @@ contains
         end do
         if (nf >= maxfun) then
             if (present(err)) then
-                call err%report_error( &
+                call err%report_warning( &
                     "bobyqb", &
                     "Return from BOBYQA because CALFUN has been called MAXFUN times.", &
                     FIT_ERROR + 10 &
