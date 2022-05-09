@@ -135,7 +135,7 @@ contains
         np = n + 1
         if (npt < n+2 .or. npt > ((n+2)*np)/2) then
             if (present(err)) then
-                call err%report_error( &
+                call err%report_warning( &
                     "bobyqa", &
                     "Return from BOBYQA because NPT is not in the required interval",&
                     VALUE_ERROR &
@@ -180,7 +180,7 @@ contains
             temp = xu (j) - xl (j)
             if (temp < rhobeg+rhobeg) then
                 if (present(err)) then
-                    call err%report_error( &
+                    call err%report_warning( &
                         "bobyqa", &
                         "Return from BOBYQA because one of the differences "//&
                         "XU(I)-XL(I) is less than 2*RHOBEG.", &
@@ -295,7 +295,7 @@ contains
         call prelim (n, npt, x, xl, xu, rhobeg, iprint, maxfun, xbase, xpt, fval, gopt, &
        & hq, pq, bmat, zmat, ndim, sl, su, nf, kopt, calfun, err)
         xoptsq = zero
-        if (present(err).and.err%has_error_occurred()) return
+        if (present(err).and.err%has_any_occurred()) return
         do i = 1, n
             xopt (i) = xpt (kopt, i)
             xoptsq = xoptsq + xopt (i) ** 2
@@ -494,7 +494,7 @@ contains
         call rescue (n, npt, xl, xu, iprint, maxfun, xbase, xpt, fval, xopt, gopt, hq, &
        & pq, bmat, zmat, ndim, sl, su, nf, delta, kopt, vlag, w, w(n+np), w(ndim+np), &
        & calfun, err)
-        if (present(err).and.err%has_error_occurred()) return
+        if (present(err).and.err%has_any_occurred()) return
 !
 !     XOPT is updated now in case the branch below to label 720 is taken.
 !     Any updating of GOPT occurs after the branch below to label 20, which
@@ -610,7 +610,7 @@ contains
             if (denom <= half*vlag(knew)**2) then
                 if (nf > nresc) go to 190
                 if (present(err)) then
-                    call err%report_error( &
+                    call err%report_warning( &
                         "bobyqb", &
                         "Return from BOBYQA because of much cancellation in a denominator.", &
                         FIT_ERROR &
@@ -654,7 +654,7 @@ contains
             if (scaden <= half*biglsq) then
                 if (nf > nresc) go to 190
                 if (present(err)) then
-                    call err%report_error( &
+                    call err%report_warning( &
                         "bobyqb", &
                         "Return from BOBYQA because of much cancellation in a denominator.", &
                         FIT_ERROR &
@@ -691,12 +691,12 @@ contains
             go to 720
         end if
         nf = nf + 1
-        call calfun (n, x(1:n), f)
-        if (isnan(f)) f = LARGE_VALUE
         if (present(err).and.err%timeout_is_set()) then
             call err%check_timeout("bobyqb")
-            if (err%has_error_occurred()) return
+            if (err%has_any_occurred()) return
         end if
+        call calfun (n, x(1:n), f)
+        if (isnan(f)) f = LARGE_VALUE
         if (iprint == 3) then
             print 400, nf, f, (x(i), i=1, n)
 400         format (/ 4 x, 'Function number', i6, '    F =', 1 pd18.10,&
@@ -736,7 +736,7 @@ contains
         if (ntrits > 0) then
             if (vquad >= zero) then
                 if (present(err)) then
-                    call err%report_error( &
+                    call err%report_warning( &
                         "bobyqb", &
                         "Return from BOBYQA because a trust region step has failed to reduce Q.", &
                         FIT_ERROR &
@@ -1416,12 +1416,12 @@ contains
             if (xpt(nf, j) == sl(j)) x (j) = xl (j)
             if (xpt(nf, j) == su(j)) x (j) = xu (j)
         end do
-        call calfun (n, x(1:n), f)
-        if (isnan(f)) f = LARGE_VALUE
         if (present(err).and.err%timeout_is_set()) then
             call err%check_timeout("bobyqb")
-            if (err%has_error_occurred()) return
+            if (err%has_any_occurred()) return
         end if
+        call calfun (n, x(1:n), f)
+        if (isnan(f)) f = LARGE_VALUE
         if (iprint == 3) then
             print 70, nf, f, (x(i), i=1, n)
 70          format (/ 4 x, 'Function number', i6, '    F =', 1 pd18.10,&
@@ -1862,12 +1862,12 @@ contains
                 if (xpt(kpt, i) == su(i)) w (i) = xu (i)
             end do
             nf = nf + 1
-            call calfun (n, w(1:n), f)
-            if (isnan(f)) f = LARGE_VALUE
             if (present(err).and.err%timeout_is_set()) then
                 call err%check_timeout("bobyqb")
-                if (err%has_error_occurred()) return
+                if (err%has_any_occurred()) return
             end if
+            call calfun (n, w(1:n), f)
+            if (isnan(f)) f = LARGE_VALUE
             if (iprint == 3) then
                 print 300, nf, f, (w(i), i=1, n)
 300             format (/ 4 x, 'Function number', i6, '    F =', 1 pd18.10,&
