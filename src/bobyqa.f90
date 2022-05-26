@@ -75,7 +75,7 @@ contains
 !  matrix calculations becomes more difficult. Some excellent numerical results
 !  have been found in the case ```NPT=N+6``` even with more than 100 variables.
 
-    subroutine bobyqa (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, calfun, err, timeout)
+    subroutine bobyqa (n, npt, x, xl, xu, rhobeg, rhoend, iprint, maxfun, calfun, err)
 
         implicit none
 
@@ -113,7 +113,6 @@ contains
                                                        !! variables X(1),X(2),...,X(N), which are generated automatically in a
                                                        !! way that satisfies the bounds given in XL and XU.
         type(errors), optional, intent(inout)         :: err     !! Error manager
-        real, optional, intent(in)          :: timeout !! Time in seconds until a timeout error is raised.
 
         integer :: ibmat,id,ifv,igo,ihq,ipq,isl,isu,ivl,iw,ixa,&
                    ixb,ixn,ixo,ixp,izmat,j,jsl,jsu,ndim,np
@@ -125,9 +124,10 @@ contains
         ! The array W will be used for working space.
         allocate( w((NPT+5)*(NPT+N)+3*N*(N+5)/2) )
 
-        if (present(err).and.present(timeout)) then
-            call err%set_timeout_threshold(timeout)
-            call err%start_timing()
+        if (present(err)) then
+            if (err%timeout_is_set()) then
+                call err%start_timing()
+            end if
         end if
 !
 !     Return if the value of NPT is unacceptable.
@@ -691,8 +691,8 @@ contains
             go to 720
         end if
         nf = nf + 1
-        if (present(err).and.err%timeout_is_set()) then
-            call err%check_timeout("bobyqb")
+        if (present(err)) then
+            call err%check_timeout("bobyqb", .true.)
             if (err%has_any_occurred()) return
         end if
         call calfun (n, x(1:n), f)
@@ -1416,8 +1416,8 @@ contains
             if (xpt(nf, j) == sl(j)) x (j) = xl (j)
             if (xpt(nf, j) == su(j)) x (j) = xu (j)
         end do
-        if (present(err).and.err%timeout_is_set()) then
-            call err%check_timeout("bobyqb")
+        if (present(err)) then
+            call err%check_timeout("bobyqb", .true.)
             if (err%has_any_occurred()) return
         end if
         call calfun (n, x(1:n), f)
@@ -1862,8 +1862,8 @@ contains
                 if (xpt(kpt, i) == su(i)) w (i) = xu (i)
             end do
             nf = nf + 1
-            if (present(err).and.err%timeout_is_set()) then
-                call err%check_timeout("bobyqb")
+            if (present(err)) then
+                call err%check_timeout("bobyqb", .true.)
                 if (err%has_any_occurred()) return
             end if
             call calfun (n, w(1:n), f)
