@@ -125,9 +125,7 @@ contains
         allocate( w((NPT+5)*(NPT+N)+3*N*(N+5)/2) )
 
         if (present(err)) then
-            if (err%timeout_is_set()) then
-                call err%start_timing()
-            end if
+            call err%start_timing()
         end if
 !
 !     Return if the value of NPT is unacceptable.
@@ -692,7 +690,7 @@ contains
         end if
         nf = nf + 1
         if (present(err)) then
-            call err%check_timeout("bobyqb", .true.)
+            call err%check_timeout("bobyqb")
             if (err%has_any_occurred()) return
         end if
         call calfun (n, x(1:n), f)
@@ -1417,7 +1415,7 @@ contains
             if (xpt(nf, j) == su(j)) x (j) = xu (j)
         end do
         if (present(err)) then
-            call err%check_timeout("bobyqb", .true.)
+            call err%check_timeout("bobyqb")
             if (err%has_any_occurred()) return
         end if
         call calfun (n, x(1:n), f)
@@ -1863,7 +1861,7 @@ contains
             end do
             nf = nf + 1
             if (present(err)) then
-                call err%check_timeout("bobyqb", .true.)
+                call err%check_timeout("bobyqb")
                 if (err%has_any_occurred()) return
             end if
             call calfun (n, w(1:n), f)
